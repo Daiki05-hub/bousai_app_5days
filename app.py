@@ -28,8 +28,8 @@ ADMIN_CREDENTIALS = {
 PREFECTURE_CODE = "020000"  # 青森県
 AREA_NAME = "青森市"
 
-# JMAの市町村コード。青森市は 0220100
-AREA_CODES = {"0220100"}
+# JMAの市町村コード。青森市は 0240100
+AREA_CODES = {"0240100"}
 
 WARNING_URL = (
     f"https://www.jma.go.jp/bosai/warning/data/r8/{PREFECTURE_CODE}.json"
@@ -324,9 +324,46 @@ def all_shelters():
 
 
 # 指示ボード：住民向けの指示を一覧で確認する
-@app.route('/board')
+@app.route('/board', methods=['GET', 'POST'])
 @login_required
 def board():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'delete':
+            message_id = request.form.get('id')
+            if message_id is not None:
+                instructions[:] = [
+                    i for i in instructions
+                    if str(i.get('id')) != str(message_id)
+                ]
+                save_instructions()
+            return redirect(url_for('board'))
+
+        content = (request.form.get('content') or '').strip()
+        district = (request.form.get('district') or '').strip()
+        priority = (request.form.get('priority') or '').strip()
+        posted_at = request.form.get('posted_at') or datetime.now(JST).strftime('%Y-%m-%dT%H:%M')
+
+        if content:
+            new_id = max((int(i.get('id', 0)) for i in instructions if isinstance(i.get('id'), int)), default=0) + 1
+            created = datetime.now(JST).strftime('%Y年%m月%d日 %H:%M')
+
+            instructions.insert(0, {
+                'id': new_id,
+                'target': '住民',
+                'content': content,
+                'district': district,
+                'priority': priority,
+                'shelter': '',
+                'status': '新規',
+                'created_at': created,
+                'updated_at': created,
+                'posted_at': posted_at,
+            })
+            save_instructions()
+
+        return redirect(url_for('board'))
+
     resident_instructions = [i for i in instructions if i.get('target') == '住民']
     return render_template('board.html', instructions=resident_instructions)
 

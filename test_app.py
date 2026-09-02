@@ -44,6 +44,26 @@ class ShelterAppTests(unittest.TestCase):
         self.assertIn('青森市', response.get_data(as_text=True))
         self.assertNotIn('藤沢市', response.get_data(as_text=True))
 
+    def test_board_post_saves_content_and_meta(self):
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+            sess['username'] = 'admin'
+
+        response = self.client.post('/board', data={
+            'content': '避難してください',
+            'posted_at': '2026-08-03T14:23',
+            'district': 'A地区',
+            'priority': '大',
+        }, follow_redirects=False)
+
+        self.assertEqual(response.status_code, 302)
+
+        page = self.client.get('/board')
+        html = page.get_data(as_text=True)
+        self.assertIn('避難してください', html)
+        self.assertIn('A地区', html)
+        self.assertIn('大', html)
+
 
 if __name__ == '__main__':
     unittest.main()

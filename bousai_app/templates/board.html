@@ -3,23 +3,269 @@
 {% block title %}指示・発信ボード - 防災アプリ{% endblock %}
 
 {% block content %}
-<h2>発信ボード</h2>
-<p>住民向けの発信を登録・確認できます。</p>
+<style>
+  .board-page {
+    margin-top: 18px;
+    padding: 8px 0 32px;
+  }
 
-<!-- 発信一覧 -->
-<h3>発信一覧</h3>
-{% if instructions %}
-<table border="1" cellpadding="5">
-  <tr>
-    <th>内容</th>
-  </tr>
-  {% for inst in instructions %}
-  <tr>
-    <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>登録されている指示はありません。</p>
-{% endif %}
+  .board-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+
+  .board-panel {
+    background: #efefef;
+    border: 1px solid #d7dfe4;
+    border-radius: 18px;
+    box-shadow: 0 8px 18px rgba(26, 50, 71, 0.08);
+    overflow: hidden;
+  }
+
+  .board-main {
+    min-height: 620px;
+    background: #e8e8e8;
+    border: 1px solid #d0d5d8;
+    padding: 14px 18px 16px;
+  }
+
+  .board-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    background: #e4e4e4;
+    border: 1px solid #c9ced2;
+    border-radius: 12px 12px 0 0;
+    padding: 10px 14px;
+  }
+
+  .board-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 800;
+    color: #1f2a36;
+    font-size: 1.2rem;
+  }
+
+  .board-body {
+    background: #f5f5f5;
+    border: 1px solid #cdd4d8;
+    border-top: none;
+    padding: 18px 16px 12px;
+  }
+
+  .board-form {
+    display: grid;
+    grid-template-columns: 1.2fr 0.9fr 0.9fr 0.7fr;
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 16px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .field-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #2e3943;
+  }
+
+  .field-box,
+  .field-box input,
+  .field-box select {
+    width: 100%;
+    background: white;
+    border: 1px solid #c9ced1;
+    border-radius: 8px;
+    min-height: 42px;
+    padding: 10px 12px;
+    color: #2d3741;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    font-family: inherit;
+  }
+
+  .field-box textarea {
+    width: 100%;
+    background: white;
+    border: 1px solid #c9ced1;
+    border-radius: 8px;
+    min-height: 42px;
+    padding: 10px 12px;
+    color: #2d3741;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .submit-btn {
+    height: 42px;
+    border: none;
+    border-radius: 8px;
+    background: #dfeaf7;
+    color: #1e466c;
+    border: 1px solid #b7d1eb;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .board-table-wrap {
+    border: 1px solid #d1d7dc;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+  }
+
+  table.board-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 0.95rem;
+  }
+
+  table.board-table th,
+  table.board-table td {
+    border: 1px solid #d8dfe5;
+    padding: 12px 10px;
+    text-align: center;
+    vertical-align: middle;
+    color: #2d3741;
+  }
+
+  table.board-table th {
+    background: #162b3d;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.92rem;
+  }
+
+  table.board-table td {
+    background: #f7f7f7;
+    min-height: 52px;
+  }
+
+  table.board-table td.alert {
+    color: #e14949;
+    font-weight: 900;
+    font-size: 1.2rem;
+  }
+
+  table.board-table td.warning {
+    color: #d6762f;
+    font-weight: 800;
+  }
+
+  .table-row-strong {
+    font-weight: 700;
+  }
+
+  @media (max-width: 900px) {
+    .board-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .board-form {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .board-form {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<div class="board-page">
+  <div class="board-layout">
+    <section class="board-panel board-main">
+      <div class="board-header">
+        <div class="board-header-left">指示・発信ボード</div>
+      </div>
+
+      <div class="board-body">
+        <form method="post" class="board-form">
+          <div class="form-field">
+            <label class="field-label" for="content">発信内容</label>
+            <textarea id="content" name="content" class="field-box" placeholder="自由に入力してください" required></textarea>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="posted_at">日時</label>
+            <input id="posted_at" name="posted_at" class="field-box" type="datetime-local" value="2026-08-03T14:23">
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="district">対象地区</label>
+            <select id="district" name="district" class="field-box" required>
+              <option value="">選択してください</option>
+              <option>A地区</option>
+              <option>B地区</option>
+              <option>C地区</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label class="field-label" for="priority">重要度</label>
+            <select id="priority" name="priority" class="field-box" required>
+              <option value="">選択してください</option>
+              <option>大</option>
+              <option>中</option>
+              <option>小</option>
+            </select>
+          </div>
+
+          <button type="submit" class="submit-btn" style="grid-column: 1 / -1;">投稿</button>
+        </form>
+
+        <div class="board-table-wrap">
+          <table class="board-table">
+            <thead>
+              <tr>
+                <th style="width: 22%;">日時</th>
+                <th style="width: 28%;">内容</th>
+                <th style="width: 22%;">対象地域</th>
+                <th style="width: 16%;">重要度</th>
+                <th style="width: 12%;">削除</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% if instructions %}
+                {% for message in instructions %}
+                <tr>
+                  <td>{{ message.posted_at or message.created_at }}</td>
+                  <td class="table-row-strong">{{ message.content }}</td>
+                  <td>● {{ message.district or '未設定' }}</td>
+                  <td class="{% if message.priority == '大' %}alert{% else %}warning{% endif %}">{{ message.priority or '未設定' }}</td>
+                  <td>
+                    <form method="post" style="margin:0;">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="id" value="{{ message.id }}">
+                      <button type="submit" class="submit-btn" style="height:32px; padding:0 12px;">削除</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              {% else %}
+                <tr>
+                  <td colspan="5">登録された指示はありません。</td>
+                </tr>
+              {% endif %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
 {% endblock %}
